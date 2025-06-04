@@ -12,6 +12,7 @@ async function main() {
     .values({
       name: "Rita Manager",
       email: "rita@example.com",
+      userId: "00000000-0000-0000-0000-000000000000",
     })
     .returning();
 
