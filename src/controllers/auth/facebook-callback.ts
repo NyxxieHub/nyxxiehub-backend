@@ -4,8 +4,7 @@ import { saveFacebookToken } from "@/services/client/save-facebook-token";
 
 const APP_ID = process.env.FB_APP_ID;
 const APP_SECRET = process.env.FB_APP_SECRET;
-const REDIRECT_URI =
-  "https://114833c0-7305-4c4e-b28e-0b0cfd3f5b52.weweb-preview.io/redirect-page/";
+const REDIRECT_URI = process.env.FB_REDIRECT_URI;
 
 export async function facebookCallback(req: Request, res: Response) {
   const code = req.query.code as string;
