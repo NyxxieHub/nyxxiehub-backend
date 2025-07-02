@@ -5,7 +5,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import session from "express-session";
 import authRoutes from "./routes/auth";
-
+import cors from "cors";
 config();
 
 const app = express();
@@ -16,6 +16,13 @@ app.use(
     secret: process.env.SESSION_SECRET || "my-default-secret",
     resave: false,
     saveUninitialized: false,
+  })
+);
+
+app.use(
+  cors({
+    origin: "https://114833c0-7305-4c4e-b28e-0b0cfd3f5b52.weweb-preview.io",
+    credentials: true,
   })
 );
 
