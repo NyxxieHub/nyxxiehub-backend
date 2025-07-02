@@ -11,7 +11,8 @@ async function reset() {
 
   // Delete na ordem certa pra evitar erro de FK
   await db.delete(schema.loginTokens);
-  await db.delete(schema.settings);
+  await db.delete(schema.clientSettings);
+  await db.delete(schema.managerSettings);
   await db.delete(schema.clients);
   await db.delete(schema.managers);
 

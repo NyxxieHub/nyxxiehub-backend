@@ -1,9 +1,25 @@
+/// <reference path="./types/express.d.ts" />
 import express from "express";
 import { config } from "dotenv";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import session from "express-session";
+import authRoutes from "./routes/auth";
+
 config();
 
 const app = express();
 app.use(express.json());
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "my-default-secret",
+    resave: false,
+    saveUninitialized: false,
+  })
+);
+
+app.use(authRoutes);
 
 app.get("/", (req, res) => {
   res.send("Servidor rodando! 🚀");
@@ -12,3 +28,6 @@ app.get("/", (req, res) => {
 app.listen(3000, () => {
   console.log("Server on http://localhost:3000");
 });
+
+const client = postgres(process.env.DATABASE_URL!);
+export const db = drizzle(client);
