@@ -4,7 +4,8 @@ import { saveFacebookToken } from "@/services/client/save-facebook-token";
 
 const APP_ID = process.env.FB_APP_ID;
 const APP_SECRET = process.env.FB_APP_SECRET;
-const REDIRECT_URI = "http://localhost:3000/auth/facebook/callback";
+const REDIRECT_URI =
+  "https://114833c0-7305-4c4e-b28e-0b0cfd3f5b52.weweb-preview.io/redirect-page/";
 
 export async function facebookCallback(req: Request, res: Response) {
   const code = req.query.code as string;
@@ -12,6 +13,13 @@ export async function facebookCallback(req: Request, res: Response) {
   if (!code) {
     return res.status(400).json({ error: "Código não informado" });
   }
+
+  console.log("debug fb callback", {
+    code,
+    APP_ID,
+    APP_SECRET,
+    REDIRECT_URI,
+  });
 
   try {
     // 1. Troca o código pelo token de acesso curto
@@ -71,7 +79,7 @@ export async function facebookCallback(req: Request, res: Response) {
 
     return res.status(200).json({ token: longLivedToken });
   } catch (error) {
-    console.error("Erro ao trocar o token:", error);
+    console.error("Erro ao trocar o token:", (error as any).response.data);
     return res
       .status(500)
       .json({ error: "Erro ao trocar token com o Facebook" });
