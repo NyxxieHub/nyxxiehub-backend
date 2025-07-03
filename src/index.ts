@@ -22,6 +22,15 @@ app.use(
 app.use(
   cors({
     origin: "https://114833c0-7305-4c4e-b28e-0b0cfd3f5b52.weweb-preview.io",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
+
+app.use(
+  cors({
+    origin: "*",
     credentials: true,
   })
 );
