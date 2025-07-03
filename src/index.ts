@@ -30,7 +30,7 @@ app.use(
 
 app.use(
   cors({
-    origin: "*",
+    origin: "https://114833c0-7305-4c4e-b28e-0b0cfd3f5b52.weweb-preview.io",
     credentials: true,
   })
 );
