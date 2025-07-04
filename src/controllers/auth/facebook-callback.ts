@@ -77,8 +77,15 @@ export async function facebookCallback(req: Request, res: Response) {
     });
 
     return res.status(200).json({ token: longLivedToken });
-  } catch (error) {
-    console.error("Erro ao trocar o token:", (error as any).response.data);
+  } catch (error: any) {
+    if (error.response) {
+      console.error("Erro ao trocar o token:", error.response.data);
+    } else if (error.request) {
+      console.error("Erro na requisição ao Facebook:", error.request);
+    } else {
+      console.error("Erro inesperado:", error.message);
+    }
+
     return res
       .status(500)
       .json({ error: "Erro ao trocar token com o Facebook" });
