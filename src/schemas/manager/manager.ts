@@ -5,7 +5,7 @@ export const manager = pgTable("manager", {
   name: text("name").notNull(),
   email: text("email").notNull(),
   password: text("password").notNull(),
-  supabaseUserAuth: uuid("user_id").notNull(),
+  supabaseUserAuth: uuid("supabase_user_auth").notNull(),
   companyName: text("company_name"),
   mangerImg: text("manager_img").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
