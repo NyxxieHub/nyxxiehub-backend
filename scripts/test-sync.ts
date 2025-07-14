@@ -1,4 +1,4 @@
-import { syncMetaData } from "@/lib/sync-meta-data";
+import { syncMetaData } from "@/lib/meta-sync/sync-meta-data";
 
 async function main() {
   console.log("🚀 Iniciando sincronização de dados do Meta...");

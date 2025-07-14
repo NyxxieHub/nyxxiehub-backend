@@ -31,7 +31,7 @@ export async function requireAuth(
     }
 
     // Aqui tu pode fazer lógica extra se quiser, tipo buscar no banco o client com o mesmo email ou id
-    req.clientId = user.id; // ou outro campo que tu quiser
+    req.managerId = user.id;
     next();
   } catch (error) {
     console.error("Erro ao validar token Supabase:", error);

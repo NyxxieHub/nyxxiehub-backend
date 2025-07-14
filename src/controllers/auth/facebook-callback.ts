@@ -1,6 +1,9 @@
 import { Request, Response } from "express";
 import axios from "axios";
 import { saveFacebookToken } from "@/services/client/save-facebook-token";
+import { db } from "@/index";
+import { client } from "@/schemas/client/client";
+import { eq } from "drizzle-orm";
 
 const APP_ID = process.env.FB_APP_ID;
 const APP_SECRET = process.env.FB_APP_SECRET;
@@ -19,6 +22,20 @@ export async function facebookCallback(req: Request, res: Response) {
     APP_SECRET,
     REDIRECT_URI,
   });
+
+  const managerId = req.managerId; // isso aqui vem do requireAuth
+
+  if (!managerId) {
+    return res.status(401).json({ error: "Manager não autenticado" });
+  }
+
+  const clientData = await db.query.client.findFirst({
+    where: eq(client.id, client),
+  });
+
+  if (!clientData || clientData.managerId !== managerId) {
+    return res.status(403).json({ error: "Esse client não pertence a você" });
+  }
 
   try {
     // 1. Troca o código pelo token de acesso curto
@@ -61,11 +78,10 @@ export async function facebookCallback(req: Request, res: Response) {
 
     const fbUserId = meRes.data.id;
 
-    // 4. Salva no banco atrelado ao client
-    const clientId = req.clientId;
+    const clientId = req.query.clientId as string;
 
     if (!clientId) {
-      return res.status(401).json({ error: "Client não autenticado" });
+      return res.status(400).json({ error: "clientId não informado" });
     }
 
     await saveFacebookToken({

@@ -6,6 +6,10 @@ import postgres from "postgres";
 import session from "express-session";
 import authRoutes from "./routes/auth";
 import cors from "cors";
+import * as schema from "@/schemas";
+
+const client = postgres(process.env.DATABASE_URL!);
+export const db = drizzle(client, { schema });
 config();
 
 const app = express();
@@ -37,6 +41,3 @@ app.get("/", (req, res) => {
 app.listen(3000, () => {
   console.log("Server on http://localhost:3000");
 });
-
-const client = postgres(process.env.DATABASE_URL!);
-export const db = drizzle(client);
