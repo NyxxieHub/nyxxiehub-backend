@@ -11,9 +11,15 @@ const REDIRECT_URI = process.env.FB_REDIRECT_URI;
 
 export async function facebookCallback(req: Request, res: Response) {
   const code = req.query.code as string;
+  const clientId = req.query.clientId as string;
+  const managerId = req.managerId;
 
-  if (!code) {
-    return res.status(400).json({ error: "Código não informado" });
+  if (!code || !clientId) {
+    return res.status(400).json({ error: "Código ou clientId não informado" });
+  }
+
+  if (!managerId) {
+    return res.status(401).json({ error: "Manager não autenticado" });
   }
 
   console.log("debug fb callback", {
@@ -23,21 +29,16 @@ export async function facebookCallback(req: Request, res: Response) {
     REDIRECT_URI,
   });
 
-  const managerId = req.managerId; // isso aqui vem do requireAuth
-
-  if (!managerId) {
-    return res.status(401).json({ error: "Manager não autenticado" });
-  }
-
-  const clientData = await db.query.client.findFirst({
-    where: eq(client.id, client),
-  });
-
-  if (!clientData || clientData.managerId !== managerId) {
-    return res.status(403).json({ error: "Esse client não pertence a você" });
-  }
-
   try {
+    // Valida se o client pertence ao manager autenticado
+    const clientData = await db.query.client.findFirst({
+      where: eq(client.id, clientId),
+    });
+
+    if (!clientData || clientData.managerId !== managerId) {
+      return res.status(403).json({ error: "Esse client não pertence a você" });
+    }
+
     // 1. Troca o código pelo token de acesso curto
     const shortTokenRes = await axios.get(
       "https://graph.facebook.com/v19.0/oauth/access_token",
@@ -78,18 +79,13 @@ export async function facebookCallback(req: Request, res: Response) {
 
     const fbUserId = meRes.data.id;
 
-    const clientId = req.query.clientId as string;
-
-    if (!clientId) {
-      return res.status(400).json({ error: "clientId não informado" });
-    }
-
+    // 4. Salva no banco
     await saveFacebookToken({
       clientId,
       token: shortLivedToken,
       accessToken: longLivedToken,
       fbUserId,
-      expiresAt: new Date(Date.now() + expiresIn * 1000), // expiresIn em segundos
+      expiresAt: new Date(Date.now() + expiresIn * 1000),
     });
 
     return res.status(200).json({ token: longLivedToken });
