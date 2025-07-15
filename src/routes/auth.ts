@@ -6,6 +6,6 @@ import { requireAuth } from "@/middleware/require-auth";
 const router = express.Router();
 
 router.post("/auth/login", login);
-router.get("/auth/facebook/callback", requireAuth, facebookCallback);
+router.post("/auth/facebook/callback", requireAuth, facebookCallback);
 
 export default router;

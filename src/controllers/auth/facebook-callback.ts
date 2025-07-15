@@ -10,27 +10,22 @@ const APP_SECRET = process.env.FB_APP_SECRET;
 const REDIRECT_URI = process.env.FB_REDIRECT_URI;
 
 export async function facebookCallback(req: Request, res: Response) {
-  const code = req.query.code as string;
-  const clientId = req.query.clientId as string;
-  const managerId = req.managerId;
+  const { code, clientId, accessToken } = req.body;
 
-  if (!code || !clientId) {
-    return res.status(400).json({ error: "Código ou clientId não informado" });
+  if (!code || !clientId || !accessToken) {
+    return res
+      .status(400)
+      .json({ error: "code, clientId ou accessToken faltando" });
   }
+
+  const managerId = req.managerId;
 
   if (!managerId) {
     return res.status(401).json({ error: "Manager não autenticado" });
   }
 
-  console.log("debug fb callback", {
-    code,
-    APP_ID,
-    APP_SECRET,
-    REDIRECT_URI,
-  });
-
   try {
-    // Valida se o client pertence ao manager autenticado
+    // 🔐 Verifica se client pertence ao manager
     const clientData = await db.query.client.findFirst({
       where: eq(client.id, clientId),
     });
@@ -54,7 +49,7 @@ export async function facebookCallback(req: Request, res: Response) {
 
     const shortLivedToken = shortTokenRes.data.access_token;
 
-    // 2. Troca o token curto por um token de longo prazo
+    // 2. Troca pelo token de longo prazo
     const longTokenRes = await axios.get(
       "https://graph.facebook.com/v19.0/oauth/access_token",
       {
@@ -70,7 +65,7 @@ export async function facebookCallback(req: Request, res: Response) {
     const longLivedToken = longTokenRes.data.access_token;
     const expiresIn = longTokenRes.data.expires_in;
 
-    // 3. Pega o fb_user_id usando o token
+    // 3. Pega o ID do usuário do Facebook
     const meRes = await axios.get("https://graph.facebook.com/v19.0/me", {
       params: {
         access_token: longLivedToken,
@@ -88,7 +83,7 @@ export async function facebookCallback(req: Request, res: Response) {
       expiresAt: new Date(Date.now() + expiresIn * 1000),
     });
 
-    return res.status(200).json({ token: longLivedToken });
+    return res.status(200).json({ message: "Token salvo com sucesso" });
   } catch (error: any) {
     if (error.response) {
       console.error("Erro ao trocar o token:", error.response.data);
