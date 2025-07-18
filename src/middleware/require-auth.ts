@@ -20,6 +20,8 @@ export async function requireAuth(
   try {
     const decoded = jwt.decode(token) as { sub?: string };
 
+    console.log("🔎 Decoded sub do JWT:", decoded.sub);
+
     if (!decoded?.sub) {
       return res.status(401).json({ error: "Token inválido" });
     }
