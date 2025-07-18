@@ -16,6 +16,7 @@ interface AdSetInsightInput {
   cpm?: number;
   cpp?: number;
   cost_per_inline_link_click?: number;
+  cost_per_action_type?: number | null;
   actions?: any;
   action_values?: any;
   conversions?: any;
@@ -51,6 +52,7 @@ export async function insertAdSetInsights(insights: AdSetInsightInput[]) {
       cpm: insight.cpm ?? null,
       cpp: insight.cpp ?? null,
       costPerInlineLinkClick: insight.cost_per_inline_link_click ?? null,
+      costPerActionType: insight.cost_per_action_type ?? [],
       actions: insight.actions ?? null,
       actionValues: insight.action_values ?? null,
       conversions: insight.conversions ?? null,

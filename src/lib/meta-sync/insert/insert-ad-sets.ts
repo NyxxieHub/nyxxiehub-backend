@@ -1,6 +1,9 @@
 import { db } from "@/index";
 import { adSets } from "@/schemas";
 import { eq } from "drizzle-orm";
+import { safeDate } from "@/utils/safe-date";
+
+type AdSetInsert = typeof adSets.$inferInsert;
 
 interface AdSetInput {
   id: string;
@@ -21,15 +24,23 @@ export async function insertAdSets(adSetList: AdSetInput[]) {
       .from(adSets)
       .where(eq(adSets.id, adSet.id));
 
-    const baseData = {
+    const startTime = safeDate(adSet.start_time);
+    if (!startTime) {
+      console.warn(`⚠️ Invalid start_time for adSet ${adSet.id}, skipping...`);
+      continue;
+    }
+
+    const baseData: AdSetInsert = {
       metaAdSetId: adSet.meta_ad_set_id,
       campaignId: adSet.campaign_id,
       name: adSet.name,
       status: adSet.status,
       effectiveStatus: adSet.effective_status,
-      dailyBudget: adSet.daily_budget ?? null,
-      startTime: new Date(adSet.start_time),
-      endTime: adSet.end_time ? new Date(adSet.end_time) : null,
+      dailyBudget: adSet.daily_budget ?? undefined,
+      startTime,
+      endTime: adSet.end_time
+        ? safeDate(adSet.end_time) ?? undefined
+        : undefined,
     };
 
     if (existing.length > 0) {

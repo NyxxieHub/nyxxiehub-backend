@@ -14,5 +14,5 @@ export const client = pgTable("client", {
     .notNull(),
   managerId: uuid("manager_id")
     .notNull()
-    .references(() => manager.supabaseUserAuth, { onDelete: "cascade" }),
+    .references(() => manager.id, { onDelete: "cascade" }),
 });

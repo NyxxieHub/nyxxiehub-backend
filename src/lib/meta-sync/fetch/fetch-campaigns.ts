@@ -12,7 +12,7 @@ export async function fetchCampaigns(clientId: string, adAccountId: string) {
 
   const url =
     `https://graph.facebook.com/v19.0/act_${adAccountId}/campaigns` +
-    `?fields=name,status,effective_status=["ACTIVE","PAUSED","ARCHIVED"],objective,start_time,stop_time,created_time,updated_time` +
+    `?fields=name,status,effective_status,daily_budget,start_time,end_time,campaign_id` +
     `&access_token=${tokenRecord.access_token}`;
 
   const res = await fetch(url);
@@ -21,7 +21,7 @@ export async function fetchCampaigns(clientId: string, adAccountId: string) {
   if (!json.data) return [];
 
   return json.data.map((campaign: any) => ({
-    id: campaign.id,
+    meta_campaign_id: campaign.id,
     ad_account_id: adAccountId,
     name: campaign.name,
     status: campaign.status,

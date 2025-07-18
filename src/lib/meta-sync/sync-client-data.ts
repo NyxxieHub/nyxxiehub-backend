@@ -13,18 +13,41 @@ import { insertCampaignInsights } from "@/lib/meta-sync/insert/insights/insert-c
 import { insertAdSetInsights } from "@/lib/meta-sync/insert/insights/insert-adset-insights";
 import { insertAdInsights } from "@/lib/meta-sync/insert/insights/insert-ad-insights";
 
+import { adAccounts as adAccountsTable } from "@/schemas";
+import { db } from "@/index";
+import { eq } from "drizzle-orm";
+
+interface Campaign {
+  meta_campaign_id: string;
+  name: string;
+  ad_account_id: string;
+}
+
 export async function syncClientData(clientId: string) {
   const adAccounts = await fetchAdAccounts(clientId);
   await insertAdAccounts(adAccounts);
 
   for (const adAccount of adAccounts) {
+    // pega o ad account salvo no banco pra obter o UUID real
+    const [dbAdAccount] = await db
+      .select()
+      .from(adAccountsTable)
+      .where(eq(adAccountsTable.metaAccountId, adAccount.meta_ad_account_id));
+
+    if (!dbAdAccount) continue;
+
     const campaigns = await fetchCampaigns(
       clientId,
       adAccount.meta_ad_account_id
     );
-    await insertCampaigns(campaigns);
 
-    for (const campaign of campaigns) {
+    const campaignsWithDbId = campaigns.map((c: Campaign) => ({
+      ...c,
+      ad_account_id: dbAdAccount.id,
+    }));
+    await insertCampaigns(campaignsWithDbId);
+
+    for (const campaign of campaignsWithDbId) {
       const adsets = await fetchAdSets(
         clientId,
         campaign.ad_account_id,

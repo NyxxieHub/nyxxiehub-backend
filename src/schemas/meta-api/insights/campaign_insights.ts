@@ -28,9 +28,10 @@ export const campaignInsights = pgTable("campaign_insights", {
 
   actions: jsonb("actions"),
   actionValues: jsonb("action_values"),
+  costPerActionType: jsonb("cost_per_action_type"),
+
   conversions: jsonb("conversions"),
   purchaseRoas: jsonb("purchase_roas"),
-
   inlineLinkClicks: integer("inline_link_clicks"),
   mobileAppInstall: integer("mobile_app_install"),
   videoPlays: integer("video_plays"),

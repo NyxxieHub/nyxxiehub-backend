@@ -1,18 +1,26 @@
 /// <reference path="./types/express.d.ts" />
 import express from "express";
-import { config } from "dotenv";
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
 import session from "express-session";
-import authRoutes from "./routes/auth";
 import cors from "cors";
-import * as schema from "@/schemas";
+import authRoutes from "./routes/auth";
 
-const client = postgres(process.env.DATABASE_URL!);
-export const db = drizzle(client, { schema });
-config();
+import { config } from "dotenv";
+config(); // precisa vir antes de usar o DATABASE_URL
+
+import postgres from "postgres";
+import { drizzle } from "drizzle-orm/postgres-js";
+import * as schema from "@/schemas";
+export const db = drizzle(
+  postgres(process.env.DATABASE_URL!, { ssl: "require" }),
+  { schema }
+);
+
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
 
 const app = express();
+
+// Middlewares
 app.use(express.json());
 
 app.use(
@@ -32,12 +40,13 @@ app.use(
   })
 );
 
+// Rotas
 app.use(authRoutes);
+app.get("/", (_, res) => res.send("Servidor rodando! 🚀"));
 
-app.get("/", (req, res) => {
-  res.send("Servidor rodando! 🚀");
-});
-
-app.listen(3000, () => {
-  console.log("Server on http://localhost:3000");
-});
+// Só inicia o servidor se rodar diretamente (não em script externo tipo sync)
+if (process.argv[1] === __filename) {
+  app.listen(3000, () => {
+    console.log("Server on http://localhost:3000");
+  });
+}

@@ -16,7 +16,7 @@ export async function fetchAdSets(
   if (!tokenRecord) return [];
 
   const res = await fetchWithToken(
-    `https://graph.facebook.com/v19.0/act_${metaAdAccountId}/adsets?fields=name,status,effective_status=["ACTIVE","PAUSED","ARCHIVED"],daily_budget,start_time,end_time,campaign_id&access_token=${tokenRecord.access_token}`
+    `https://graph.facebook.com/v19.0/act_${metaAdAccountId}/adsets?fields=name,status,effective_status,daily_budget,start_time,end_time,campaign_id&access_token=${tokenRecord.access_token}`
   );
 
   return (
