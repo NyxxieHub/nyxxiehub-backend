@@ -40,6 +40,8 @@ app.use(
   })
 );
 
+app.options("*", cors());
+
 // Rotas
 app.use(authRoutes);
 app.get("/", (_, res) => res.send("Servidor rodando! 🚀"));
