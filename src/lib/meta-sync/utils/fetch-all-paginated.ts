@@ -12,9 +12,6 @@ export async function fetchAllPaginated<T>(
   const results: T[] = [];
   let nextUrl: string | null = url;
 
-  console.log("[Meta API] URL:", url);
-  console.log("[Meta API] Token:", accessToken?.slice(0, 10) + "...");
-
   while (nextUrl) {
     const res: Response = await fetch(nextUrl, {
       headers: {

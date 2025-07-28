@@ -5,8 +5,6 @@ import { batchInsert } from "@/lib/meta-sync/utils/batch-insert";
 import { MetaAd } from "@/lib/meta-sync/types/ad";
 
 export async function insertAds(data: MetaAd[]) {
-  console.log(`🎯 ${data.length} anúncios encontrados`);
-
   if (!data.length) return;
 
   const existingAdSets = await db.query.adSets.findMany();

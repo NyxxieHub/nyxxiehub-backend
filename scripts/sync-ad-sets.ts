@@ -20,11 +20,7 @@ async function syncAdSets() {
         continue;
       }
 
-      const adSets = await fetchAdSets(
-        clientId,
-        account.id,
-        account.metaAccountId
-      );
+      const adSets = await fetchAdSets(clientId, account.id);
 
       await insertAdSets(adSets);
     }

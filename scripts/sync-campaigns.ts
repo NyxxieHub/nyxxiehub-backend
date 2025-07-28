@@ -20,10 +20,6 @@ async function syncCampaigns() {
         continue;
       }
 
-      console.log(
-        `🔍 Buscando campanhas para conta ${account.metaAccountId} (client: ${clientId})`
-      );
-
       const campaigns = await fetchCampaigns(
         account.clientId,
         account.metaAccountId

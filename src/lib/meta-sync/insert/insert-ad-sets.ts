@@ -5,8 +5,6 @@ import { batchInsert } from "@/lib/meta-sync/utils/batch-insert";
 import { campaigns } from "@/schemas/meta-api/campaigns";
 
 export async function insertAdSets(data: MetaAdSet[]) {
-  console.log(`🎯 ${data.length} ad sets encontrados`);
-
   if (!data.length) return;
 
   const existingCampaigns = await db.query.campaigns.findMany();

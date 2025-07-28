@@ -43,7 +43,6 @@ export async function insertCampaigns(data: CampaignInput[]) {
     console.log("❌ Nenhuma campanha válida para inserir.");
     return;
   }
-  console.log(parsed);
   try {
     await batchInsert(campaigns, parsed);
     console.log("✅ Inserção de campanhas concluída.");
