@@ -1,6 +1,8 @@
 import { facebookTokens } from "@/schemas";
 import { eq } from "drizzle-orm";
 import { db } from "@/index";
+import { fetchAllPaginated } from "../utils/fetch-all-paginated";
+import { MetaCampaign } from "@/lib/meta-sync/types/campaign";
 
 export async function fetchCampaigns(clientId: string, adAccountId: string) {
   const [tokenRecord] = await db
@@ -10,17 +12,26 @@ export async function fetchCampaigns(clientId: string, adAccountId: string) {
 
   if (!tokenRecord) return [];
 
-  const url =
-    `https://graph.facebook.com/v19.0/act_${adAccountId}/campaigns` +
-    `?fields=name,status,effective_status,daily_budget,start_time,end_time,campaign_id` +
-    `&access_token=${tokenRecord.access_token}`;
+  const fields = [
+    "id",
+    "name",
+    "status",
+    "effective_status",
+    "objective",
+    "created_time",
+    "updated_time",
+    "start_time",
+    "stop_time",
+  ].join(",");
 
-  const res = await fetch(url);
-  const json = await res.json();
+  const url = `https://graph.facebook.com/v19.0/act_${adAccountId}/campaigns?fields=${fields}&limit=25`;
 
-  if (!json.data) return [];
+  const campaigns = await fetchAllPaginated<MetaCampaign>(
+    url,
+    tokenRecord.access_token
+  );
 
-  return json.data.map((campaign: any) => ({
+  return campaigns.map((campaign) => ({
     meta_campaign_id: campaign.id,
     ad_account_id: adAccountId,
     name: campaign.name,

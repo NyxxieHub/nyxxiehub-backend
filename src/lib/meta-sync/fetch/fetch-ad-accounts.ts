@@ -2,8 +2,11 @@ import { facebookTokens } from "@/schemas";
 import { eq } from "drizzle-orm";
 import { db } from "@/index";
 import { fetchWithToken } from "@/utils/fetch-with-token";
+import { MetaAdAccount, AdAccountInput } from "../types/ad-accounts";
 
-export async function fetchAdAccounts(clientId: string) {
+export async function fetchAdAccounts(
+  clientId: string
+): Promise<AdAccountInput[]> {
   const [tokenRecord] = await db
     .select()
     .from(facebookTokens)
@@ -11,16 +14,12 @@ export async function fetchAdAccounts(clientId: string) {
 
   if (!tokenRecord) return [];
 
-  console.log("Token usado:", tokenRecord.access_token);
+  const url = `https://graph.facebook.com/v19.0/me/adaccounts?fields=name,account_status,account_id,currency,time_zone_name&limit=25&access_token=${tokenRecord.access_token}`;
 
-  const res = await fetchWithToken(
-    `https://graph.facebook.com/v19.0/me/adaccounts?fields=name,account_status,account_id,currency,time_zone_name&access_token=${tokenRecord.access_token}`
-  );
-
-  console.log("Resposta do Facebook:", res);
+  const res = await fetchWithToken<{ data: MetaAdAccount[] }>(url);
 
   return (
-    res.data?.map((account: any) => ({
+    res.data?.map((account) => ({
       client_id: clientId,
       meta_ad_account_id: account.account_id,
       name: account.name,

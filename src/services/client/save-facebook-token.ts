@@ -18,14 +18,6 @@ export async function saveFacebookToken({
   // opcional: deletar tokens antigos do mesmo client antes de inserir um novo
   await db.delete(facebookTokens).where(eq(facebookTokens.client_id, clientId));
 
-  console.log("🔥 Salvando token com:", {
-    clientId,
-    token,
-    accessToken,
-    fbUserId,
-    expiresAt,
-  });
-
   await db.insert(facebookTokens).values({
     token,
     access_token: accessToken,

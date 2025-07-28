@@ -8,7 +8,7 @@ export const ads = pgTable("ads", {
     .notNull()
     .references(() => adSets.id, { onDelete: "cascade" }),
 
-  metaAdId: text("meta_ad_id").notNull().unique(),
+  metaAdId: text("meta_ad_id").notNull(),
   name: text("name").notNull(),
   status: text("status").notNull(), // ACTIVE, PAUSED, etc
   effectiveStatus: text("effective_status").notNull(),

@@ -9,6 +9,7 @@ export const client = pgTable("client", {
   niche: text("niche"),
   clientImg: text("client_img"),
   companyName: text("company_name"),
+  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

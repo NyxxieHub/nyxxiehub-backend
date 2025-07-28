@@ -10,7 +10,7 @@ export const adSets = pgTable("ad_sets", {
       onDelete: "cascade",
     }),
 
-  metaAdSetId: text("meta_ad_set_id").notNull().unique(),
+  metaAdSetId: text("meta_ad_set_id").notNull(),
   name: text("name").notNull(),
   status: text("status").notNull(), // ACTIVE, PAUSED, etc
   effectiveStatus: text("effective_status").notNull(),

@@ -20,13 +20,10 @@ export async function requireAuth(
   try {
     const decoded = jwt.decode(token) as { sub?: string };
 
-    console.log("🔎 Decoded sub do JWT:", decoded.sub);
-
     if (!decoded?.sub) {
       return res.status(401).json({ error: "Token inválido" });
     }
 
-    // 🔍 Busca o manager pelo supabaseUserAuth
     const managerData = await db.query.manager.findFirst({
       where: eq(manager.supabaseUserAuth, decoded.sub),
     });
@@ -35,7 +32,6 @@ export async function requireAuth(
       return res.status(401).json({ error: "Manager não encontrado" });
     }
 
-    // ✅ Agora sim! Salva o ID real
     req.managerId = managerData.id;
 
     next();

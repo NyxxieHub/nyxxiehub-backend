@@ -1,51 +1,53 @@
 import { db } from "@/index";
-import { ads } from "@/schemas";
-import { eq } from "drizzle-orm";
-import { safeDate } from "@/utils/safe-date";
+import { ads } from "@/schemas/meta-api/ads";
+import { adSets } from "@/schemas/meta-api/ad-sets";
+import { batchInsert } from "@/lib/meta-sync/utils/batch-insert";
+import { MetaAd } from "@/lib/meta-sync/types/ad";
 
-type AdInsert = typeof ads.$inferInsert;
+export async function insertAds(data: MetaAd[]) {
+  console.log(`🎯 ${data.length} anúncios encontrados`);
 
-interface AdInput {
-  id: string;
-  meta_ad_id: string;
-  ad_set_id: string;
-  name: string;
-  status: string;
-  effective_status: string;
-  created_time: string;
-  updated_time?: string;
-  ad_review_feedback?: any;
-  creative?: any;
-}
+  if (!data.length) return;
 
-export async function insertAds(adList: AdInput[]) {
-  for (const ad of adList) {
-    const existing = await db.select().from(ads).where(eq(ads.id, ad.id));
+  const existingAdSets = await db.query.adSets.findMany();
+  const adSetMap = new Map(existingAdSets.map((a) => [a.metaAdSetId, a.id]));
 
-    const createdTime = safeDate(ad.created_time);
-    if (!createdTime) {
-      console.warn(`⚠️ Invalid created_time for ad ${ad.id}, skipping...`);
-      continue;
-    }
+  const parsed = data
+    .map((ad) => {
+      const adSetId = adSetMap.get(ad.adset_id);
 
-    const baseData: AdInsert = {
-      metaAdId: ad.meta_ad_id,
-      adSetId: ad.ad_set_id,
-      name: ad.name,
-      status: ad.status,
-      effectiveStatus: ad.effective_status,
-      createdTime,
-      updatedTime: ad.updated_time
-        ? safeDate(ad.updated_time) ?? undefined
-        : undefined,
-      adReviewFeedback: ad.ad_review_feedback || undefined,
-      creative: ad.creative || undefined,
-    };
+      if (!ad.id || !ad.ad_account_id || !adSetId) {
+        console.warn(
+          `⚠️ Anúncio inválido: ${JSON.stringify({
+            id: ad.id,
+            ad_account_id: ad.ad_account_id,
+            adset_id: ad.adset_id,
+            motivo: "conjunto não encontrado no banco",
+          })}`
+        );
+        return null;
+      }
 
-    if (existing.length > 0) {
-      await db.update(ads).set(baseData).where(eq(ads.id, ad.id));
-    } else {
-      await db.insert(ads).values({ id: ad.id, ...baseData });
-    }
+      return {
+        adSetId: adSetId,
+        metaAdId: ad.id,
+        name: ad.name,
+        status: ad.status,
+        effectiveStatus: ad.effective_status,
+        createdTime: new Date(ad.created_time),
+      };
+    })
+    .filter(Boolean);
+
+  if (!parsed.length) {
+    console.log("❌ Nenhum anúncio válido para inserir.");
+    return;
+  }
+
+  try {
+    await batchInsert(ads, parsed);
+    console.log("✅ Inserção de anúncios concluída.");
+  } catch (err) {
+    console.error("💥 Erro na inserção de anúncios:", err);
   }
 }

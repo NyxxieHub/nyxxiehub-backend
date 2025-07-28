@@ -8,9 +8,9 @@ export const adAccounts = pgTable("ad_accounts", {
     .references(() => client.id, {
       onDelete: "cascade",
     }),
-  metaAccountId: text("meta_account_id").notNull().unique(), // ex: act_123456
+  metaAccountId: text("meta_account_id").notNull().unique(),
   name: text("name").notNull(),
   currency: text("currency").notNull(),
   timezone: text("timezone").notNull(),
-  status: text("status").notNull(), // exemplo: ACTIVE, DISABLED
+  status: text("status").notNull(),
 });

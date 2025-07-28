@@ -1,26 +1,29 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
-import * as schema from "../src/schemas";
-import "dotenv/config";
+import { db } from "../src/index";
+import { adAccounts } from "../src/schemas/meta-api/ad-accounts";
+import { campaigns } from "../src/schemas/meta-api/campaigns";
+import { adSets } from "../src/schemas/meta-api/ad-sets";
+import { ads } from "../src/schemas/meta-api/ads";
+import { adInsights } from "../src/schemas/meta-api/insights/ad_insights";
+import { adSetInsights } from "../src/schemas/meta-api/insights/ad_set_insights";
+import { campaignInsights } from "../src/schemas/meta-api/insights/campaign_insights";
 
-const client = postgres(process.env.DATABASE_URL!, { prepare: false });
-const db = drizzle(client, { schema });
+async function resetMetaTables() {
+  console.log("Limpando insights...");
+  await db.delete(campaignInsights).execute();
+  await db.delete(adSetInsights).execute();
+  await db.delete(adInsights).execute();
 
-async function reset() {
-  console.log("🧹 Limpando tabelas...");
+  console.log("Limpando estrutura de anúncios...");
+  await db.delete(ads).execute();
+  await db.delete(adSets).execute();
+  await db.delete(campaigns).execute();
+  await db.delete(adAccounts).execute();
 
-  // Delete na ordem certa pra evitar erro de FK
-  await db.delete(schema.loginTokens);
-  await db.delete(schema.clientSettings);
-  await db.delete(schema.managerSettings);
-  await db.delete(schema.clients);
-  await db.delete(schema.managers);
-
-  console.log("✅ Banco resetado com sucesso!");
-  process.exit(0);
+  console.log("✅ Reset completo com sucesso.");
 }
 
-reset().catch((err) => {
-  console.error("❌ Erro ao resetar banco:", err);
-  process.exit(1);
-});
+resetMetaTables()
+  .catch((err) => {
+    console.error("Erro ao resetar tabelas:", err);
+  })
+  .finally(() => process.exit());

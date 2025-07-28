@@ -1,52 +1,58 @@
+import { adSets } from "@/schemas/meta-api/ad-sets";
 import { db } from "@/index";
-import { adSets } from "@/schemas";
-import { eq } from "drizzle-orm";
-import { safeDate } from "@/utils/safe-date";
+import { MetaAdSet } from "@/lib/meta-sync/types/ad-sets";
+import { batchInsert } from "@/lib/meta-sync/utils/batch-insert";
+import { campaigns } from "@/schemas/meta-api/campaigns";
 
-type AdSetInsert = typeof adSets.$inferInsert;
+export async function insertAdSets(data: MetaAdSet[]) {
+  console.log(`🎯 ${data.length} ad sets encontrados`);
 
-interface AdSetInput {
-  id: string;
-  meta_ad_set_id: string;
-  campaign_id: string;
-  name: string;
-  status: string;
-  effective_status: string;
-  daily_budget?: number;
-  start_time: string;
-  end_time?: string;
-}
+  if (!data.length) return;
 
-export async function insertAdSets(adSetList: AdSetInput[]) {
-  for (const adSet of adSetList) {
-    const existing = await db
-      .select()
-      .from(adSets)
-      .where(eq(adSets.id, adSet.id));
+  const existingCampaigns = await db.query.campaigns.findMany();
+  const campaignMap = new Map(
+    existingCampaigns.map((c) => [c.metaCampaignId, c.id])
+  );
 
-    const startTime = safeDate(adSet.start_time);
-    if (!startTime) {
-      console.warn(`⚠️ Invalid start_time for adSet ${adSet.id}, skipping...`);
-      continue;
-    }
+  const parsed = data
+    .map((adSet) => {
+      const campaignId = campaignMap.get(adSet.campaign_id);
 
-    const baseData: AdSetInsert = {
-      metaAdSetId: adSet.meta_ad_set_id,
-      campaignId: adSet.campaign_id,
-      name: adSet.name,
-      status: adSet.status,
-      effectiveStatus: adSet.effective_status,
-      dailyBudget: adSet.daily_budget ?? undefined,
-      startTime,
-      endTime: adSet.end_time
-        ? safeDate(adSet.end_time) ?? undefined
-        : undefined,
-    };
+      if (!adSet.ad_account_id || !adSet.id || !campaignId) {
+        console.warn("⚠️ Ad set inválido:", {
+          id: adSet.id,
+          ad_account_id: adSet.ad_account_id,
+          campaign_id: adSet.campaign_id,
+          motivo: !campaignId
+            ? "campanha não encontrada no banco"
+            : "dados ausentes",
+        });
+        return null;
+      }
 
-    if (existing.length > 0) {
-      await db.update(adSets).set(baseData).where(eq(adSets.id, adSet.id));
-    } else {
-      await db.insert(adSets).values({ id: adSet.id, ...baseData });
-    }
+      return {
+        adAccountId: adSet.ad_account_id,
+        metaAdSetId: adSet.id,
+        name: adSet.name,
+        status: adSet.status,
+        effectiveStatus: adSet.effective_status,
+        dailyBudget: adSet.daily_budget ? parseInt(adSet.daily_budget) : null,
+        startTime: adSet.start_time ? new Date(adSet.start_time) : null,
+        endTime: adSet.end_time ? new Date(adSet.end_time) : null,
+        campaignId: campaignId, // UUID real da tabela campaigns
+      };
+    })
+    .filter(Boolean);
+
+  if (!parsed.length) {
+    console.log("❌ Nenhum ad set válido para inserir.");
+    return;
+  }
+
+  try {
+    await batchInsert(adSets, parsed);
+    console.log("✅ Inserção de ad sets concluída.");
+  } catch (err) {
+    console.error("💥 Erro na inserção de ad sets:", err);
   }
 }

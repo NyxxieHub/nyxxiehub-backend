@@ -1,64 +1,53 @@
 import { db } from "@/index";
-import { campaigns } from "@/schemas";
-import { eq } from "drizzle-orm";
-import { safeDate } from "@/utils/safe-date";
+import { campaigns } from "@/schemas/meta-api/campaigns";
+import { CampaignInput } from "@/lib/meta-sync/types/campaign";
+import { batchInsert } from "@/lib/meta-sync/utils/batch-insert";
 
-type CampaignInsert = typeof campaigns.$inferInsert;
+export async function insertCampaigns(data: CampaignInput[]) {
+  if (!data.length) return;
 
-interface CampaignInput {
-  meta_campaign_id: string;
-  name: string;
-  ad_account_id: string;
-  status: string;
-  objective: string;
-  effective_status: string;
-  created_time: string;
-  updated_time?: string;
-  start_time?: string;
-  stop_time?: string;
-}
+  const adAccountsFromDb = await db.query.adAccounts.findMany();
+  const adAccountMap = new Map(
+    adAccountsFromDb.map((acc) => [acc.metaAccountId, acc.id])
+  );
 
-export async function insertCampaigns(campaignList: CampaignInput[]) {
-  for (const campaign of campaignList) {
-    const createdTime = safeDate(campaign.created_time);
-    if (!createdTime) {
-      console.warn(
-        `⚠️ Invalid created_time for campaign ${campaign.meta_campaign_id}, skipping...`
-      );
-      continue;
-    }
+  const parsed = data
+    .map((campaign) => {
+      const internalAdAccountId = adAccountMap.get(campaign.ad_account_id);
 
-    const baseData: CampaignInsert = {
-      metaCampaignId: campaign.meta_campaign_id,
-      name: campaign.name,
-      adAccountId: campaign.ad_account_id,
-      status: campaign.status,
-      objective: campaign.objective,
-      effectiveStatus: campaign.effective_status,
-      createdTime,
-      updatedTime: campaign.updated_time
-        ? safeDate(campaign.updated_time) ?? undefined
-        : undefined,
-      startTime: campaign.start_time
-        ? safeDate(campaign.start_time) ?? undefined
-        : undefined,
-      stopTime: campaign.stop_time
-        ? safeDate(campaign.stop_time) ?? undefined
-        : undefined,
-    };
+      if (!internalAdAccountId) {
+        console.warn(
+          `⚠️ Ad account ${campaign.ad_account_id} não encontrado no banco, pulando campanha "${campaign.name}"`
+        );
+        return null;
+      }
 
-    const existing = await db
-      .select()
-      .from(campaigns)
-      .where(eq(campaigns.metaCampaignId, campaign.meta_campaign_id));
+      return {
+        adAccountId: internalAdAccountId,
+        metaCampaignId: campaign.meta_campaign_id,
+        name: campaign.name,
+        status: campaign.status,
+        objective: campaign.objective,
+        startTime: campaign.start_time ? new Date(campaign.start_time) : null,
+        stopTime: campaign.stop_time ? new Date(campaign.stop_time) : null,
+        createdTime: new Date(campaign.created_time),
+        updatedTime: campaign.updated_time
+          ? new Date(campaign.updated_time)
+          : null,
+        effectiveStatus: campaign.effective_status,
+      };
+    })
+    .filter(Boolean);
 
-    if (existing.length > 0) {
-      await db
-        .update(campaigns)
-        .set(baseData)
-        .where(eq(campaigns.metaCampaignId, campaign.meta_campaign_id));
-    } else {
-      await db.insert(campaigns).values(baseData);
-    }
+  if (!parsed.length) {
+    console.log("❌ Nenhuma campanha válida para inserir.");
+    return;
+  }
+  console.log(parsed);
+  try {
+    await batchInsert(campaigns, parsed);
+    console.log("✅ Inserção de campanhas concluída.");
+  } catch (err) {
+    console.error("💥 Erro na inserção de campanhas:", err);
   }
 }

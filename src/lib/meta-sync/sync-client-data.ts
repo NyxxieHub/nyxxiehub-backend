@@ -13,79 +13,52 @@ import { insertCampaignInsights } from "@/lib/meta-sync/insert/insights/insert-c
 import { insertAdSetInsights } from "@/lib/meta-sync/insert/insights/insert-adset-insights";
 import { insertAdInsights } from "@/lib/meta-sync/insert/insights/insert-ad-insights";
 
-import { adAccounts as adAccountsTable } from "@/schemas";
 import { db } from "@/index";
+import { client } from "@/schemas/client/client";
 import { eq } from "drizzle-orm";
 
-interface Campaign {
-  meta_campaign_id: string;
-  name: string;
-  ad_account_id: string;
-}
-
 export async function syncClientData(clientId: string) {
+  // Step 1: Ad Accounts
   const adAccounts = await fetchAdAccounts(clientId);
   await insertAdAccounts(adAccounts);
 
   for (const adAccount of adAccounts) {
-    // pega o ad account salvo no banco pra obter o UUID real
-    const [dbAdAccount] = await db
-      .select()
-      .from(adAccountsTable)
-      .where(eq(adAccountsTable.metaAccountId, adAccount.meta_ad_account_id));
+    const adAccountId = adAccount.meta_ad_account_id;
 
-    if (!dbAdAccount) continue;
+    // Step 2: Campaigns
+    const campaigns = await fetchCampaigns(clientId, adAccountId);
+    await insertCampaigns(campaigns);
 
-    const campaigns = await fetchCampaigns(
-      clientId,
-      adAccount.meta_ad_account_id
-    );
+    for (const campaign of campaigns) {
+      // Step 3: Ad Sets
+      const adSets = await fetchAdSets(clientId, adAccountId);
+      await insertAdSets(adSets);
 
-    const campaignsWithDbId = campaigns.map((c: Campaign) => ({
-      ...c,
-      ad_account_id: dbAdAccount.id,
-    }));
-    await insertCampaigns(campaignsWithDbId);
+      for (const adSet of adSets) {
+        const adSetId = adSet.ad_account_id;
 
-    for (const campaign of campaignsWithDbId) {
-      const adsets = await fetchAdSets(
-        clientId,
-        campaign.ad_account_id,
-        campaign.meta_campaign_id
-      );
-      await insertAdSets(adsets);
-
-      for (const adset of adsets) {
-        const ads = await fetchAds(clientId, adset.id, adset.meta_ad_set_id);
+        // Step 4: Ads
+        const ads = await fetchAds(clientId, adSetId, adAccountId);
         await insertAds(ads);
 
-        const adsetInsight = await fetchInsights(
-          clientId,
-          adset.meta_ad_set_id,
-          "adset"
-        );
-        if (adsetInsight) {
-          await insertAdSetInsights([{ ...adsetInsight, ad_set_id: adset.id }]);
-        }
-
-        for (const ad of ads) {
-          const adInsight = await fetchInsights(clientId, ad.meta_ad_id, "ad");
-          if (adInsight) {
-            await insertAdInsights([{ ...adInsight, ad_id: ad.id }]);
-          }
-        }
+        // // Step 5: Ad Insights
+        // const adInsights = await fetchInsights("ad", ads);
+        // await insertAdInsights(adInsights);
       }
 
-      const campaignInsight = await fetchInsights(
-        clientId,
-        campaign.meta_campaign_id,
-        "campaign"
-      );
-      if (campaignInsight) {
-        await insertCampaignInsights([
-          { ...campaignInsight, campaign_id: campaign.id },
-        ]);
-      }
+      //   // Step 6: Ad Set Insights
+      //   const adSetInsights = await fetchInsights("ad_set", adSets);
+      //   await insertAdSetInsights(adSetInsights);
     }
+
+    // // Step 7: Campaign Insights
+    // const campaignInsights = await fetchInsights("campaign", campaigns);
+    // await insertCampaignInsights(campaignInsights);
   }
+
+  // Atualiza lastSyncedAt
+  await db
+    .update(client)
+    .set({ lastSyncedAt: new Date() })
+    .where(eq(client.id, clientId));
 }

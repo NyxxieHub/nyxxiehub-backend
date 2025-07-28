@@ -1,13 +1,10 @@
+import { db } from "@/index";
 import { facebookTokens } from "@/schemas";
 import { eq } from "drizzle-orm";
-import { db } from "@/index";
-import { fetchWithToken } from "@/utils/fetch-with-token";
+import { fetchAllPaginated } from "../utils/fetch-all-paginated";
+import { MetaAdSet } from "@/lib/meta-sync/types/ad-sets";
 
-export async function fetchAdSets(
-  clientId: string,
-  adAccountId: string,
-  metaAdAccountId: string
-) {
+export async function fetchAdSets(clientId: string, adAccountId: string) {
   const [tokenRecord] = await db
     .select()
     .from(facebookTokens)
@@ -15,22 +12,35 @@ export async function fetchAdSets(
 
   if (!tokenRecord) return [];
 
-  const res = await fetchWithToken(
-    `https://graph.facebook.com/v19.0/act_${metaAdAccountId}/adsets?fields=name,status,effective_status,daily_budget,start_time,end_time,campaign_id&access_token=${tokenRecord.access_token}`
+  const fields = [
+    "id",
+    "name",
+    "status",
+    "effective_status",
+    "daily_budget",
+    "start_time",
+    "end_time",
+    "campaign_id",
+  ].join(",");
+
+  const url = `https://graph.facebook.com/v19.0/act_${adAccountId}/adsets?fields=${fields}&limit=25`;
+
+  const adSets = await fetchAllPaginated<MetaAdSet>(
+    url,
+    tokenRecord.access_token
   );
 
   return (
-    res.data?.map((adSet: any) => ({
-      client_id: clientId,
+    adSets.map((adSet: any) => ({
+      id: adSet.id,
       ad_account_id: adAccountId,
-      meta_ad_set_id: adSet.id,
       name: adSet.name,
       status: adSet.status,
       effective_status: adSet.effective_status,
-      daily_budget: adSet.daily_budget ? parseInt(adSet.daily_budget) : null,
-      start_time: adSet.start_time ? new Date(adSet.start_time) : null,
-      end_time: adSet.end_time ? new Date(adSet.end_time) : null,
-      meta_campaign_id: adSet.campaign_id,
+      daily_budget: adSet.daily_budget,
+      start_time: adSet.start_time,
+      end_time: adSet.end_time,
+      campaign_id: adSet.campaign_id,
     })) ?? []
   );
 }

@@ -8,7 +8,11 @@
     "seed": "tsx scripts/seed.ts",
     "reset": "tsx scripts/reset.ts",
     "sync": "tsx scripts/test-sync.ts",
-    "db": "tsx scripts/test-db.ts"
+    "db": "tsx scripts/test-db.ts",
+    "ad-accounts": "tsx scripts/test-ad-accounts.ts",
+    "sync-campaigns": "tsx scripts/sync-campaigns.ts",
+    "sync-ad-sets": "tsx scripts/sync-ad-sets.ts",
+    "sync-ads": "tsx scripts/sync-ads.ts"
   },
   "dependencies": {
     "axios": "^1.10.0",

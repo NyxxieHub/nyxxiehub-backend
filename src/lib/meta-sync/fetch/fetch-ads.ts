@@ -1,13 +1,14 @@
+import { db } from "@/index";
 import { facebookTokens } from "@/schemas";
 import { eq } from "drizzle-orm";
-import { db } from "@/index";
-import { fetchWithToken } from "@/utils/fetch-with-token";
+import { fetchAllPaginated } from "../utils/fetch-all-paginated";
+import { MetaAd } from "@/lib/meta-sync/types/ad";
 
 export async function fetchAds(
   clientId: string,
-  adSetId: string,
-  metaAdSetId: string
-) {
+  adAccountId: string,
+  metaAdAccountId: string
+): Promise<MetaAd[]> {
   const [tokenRecord] = await db
     .select()
     .from(facebookTokens)
@@ -15,21 +16,28 @@ export async function fetchAds(
 
   if (!tokenRecord) return [];
 
-  const res = await fetchWithToken(
-    `https://graph.facebook.com/v19.0/${metaAdSetId}/ads?fields=name,status,effective_status=["ACTIVE","PAUSED","ARCHIVED"],created_time,updated_time,ad_review_feedback,creative&access_token=${tokenRecord.access_token}`
-  );
+  const fields = [
+    "id",
+    "name",
+    "status",
+    "effective_status",
+    "adset_id",
+    "created_time",
+  ].join(",");
+
+  const url = `https://graph.facebook.com/v19.0/act_${metaAdAccountId}/ads?fields=${fields}&limit=25`;
+
+  const ads = await fetchAllPaginated<MetaAd>(url, tokenRecord.access_token);
 
   return (
-    res.data?.map((ad: any) => ({
-      ad_set_id: adSetId,
-      meta_ad_id: ad.id,
+    ads.map((ad: any) => ({
+      id: ad.id,
       name: ad.name,
       status: ad.status,
       effective_status: ad.effective_status,
+      adset_id: ad.adset_id,
+      ad_account_id: adAccountId,
       created_time: ad.created_time,
-      updated_time: ad.updated_time ?? null,
-      ad_review_feedback: ad.ad_review_feedback ?? null,
-      creative: ad.creative ?? null,
     })) ?? []
   );
 }

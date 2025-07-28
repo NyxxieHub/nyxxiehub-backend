@@ -1,4 +1,4 @@
-export async function fetchWithToken(url: string) {
+export async function fetchWithToken<T = any>(url: string): Promise<T> {
   const res = await fetch(url);
 
   if (!res.ok) {
