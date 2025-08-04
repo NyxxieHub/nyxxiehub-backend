@@ -1,78 +1,39 @@
 import { db } from "@/index";
-import { adSetInsights } from "@/schemas";
-import { eq } from "drizzle-orm";
+import { adSetInsights, adSets } from "@/schemas";
+import { batchInsert } from "@/lib/meta-sync/utils/batch-insert";
 
-interface AdSetInsightInput {
-  id: string;
-  ad_set_id: string;
-  impressions?: number;
-  reach?: number;
-  frequency?: number;
-  clicks?: number;
-  unique_clicks?: number;
-  cpc?: number;
-  ctr?: number;
-  spend?: number;
-  cpm?: number;
-  cpp?: number;
-  cost_per_inline_link_click?: number;
-  cost_per_action_type?: number | null;
-  actions?: any;
-  action_values?: any;
-  conversions?: any;
-  purchase_roas?: any;
-  inline_link_clicks?: number;
-  mobile_app_install?: number;
-  video_plays?: number;
-  website_ctr?: number;
-  unique_ctr?: number;
-  estimated_ad_recallers?: number;
-  estimated_ad_recall_rate?: number;
-  date_start?: string;
-  date_stop?: string;
-}
+export async function insertAdSetInsights(data: any[]) {
+  if (!data.length) return;
 
-export async function insertAdSetInsights(insights: AdSetInsightInput[]) {
-  for (const insight of insights) {
-    const existing = await db
-      .select()
-      .from(adSetInsights)
-      .where(eq(adSetInsights.id, insight.id));
+  const adSetsFromDb = await db.query.adSets.findMany();
+  const adSetMap = new Map(adSetsFromDb.map((a) => [a.metaAdSetId, a.id]));
 
-    const data = {
-      adSetId: insight.ad_set_id,
-      impressions: insight.impressions ?? null,
-      reach: insight.reach ?? null,
-      frequency: insight.frequency ?? null,
-      clicks: insight.clicks ?? null,
-      uniqueClicks: insight.unique_clicks ?? null,
-      cpc: insight.cpc ?? null,
-      ctr: insight.ctr ?? null,
-      spend: insight.spend ?? null,
-      cpm: insight.cpm ?? null,
-      cpp: insight.cpp ?? null,
-      costPerInlineLinkClick: insight.cost_per_inline_link_click ?? null,
-      costPerActionType: insight.cost_per_action_type ?? [],
-      actions: insight.actions ?? null,
-      actionValues: insight.action_values ?? null,
-      conversions: insight.conversions ?? null,
-      purchaseRoas: insight.purchase_roas ?? null,
-      inlineLinkClicks: insight.inline_link_clicks ?? null,
-      websiteCtr: insight.website_ctr ?? null,
-      uniqueCtr: insight.unique_ctr ?? null,
-      estimatedAdRecallers: insight.estimated_ad_recallers ?? null,
-      estimatedAdRecallRate: insight.estimated_ad_recall_rate ?? null,
-      dateStart: insight.date_start ?? null,
-      dateStop: insight.date_stop ?? null,
-    };
+  const parsed = data
+    .map((insight) => {
+      const internalAdSetId = adSetMap.get(insight.adSetId);
+      if (!internalAdSetId) {
+        console.warn(
+          `⚠️ Ad set ${insight.adSetId} não encontrado, pulando insight.`
+        );
+        return null;
+      }
 
-    if (existing.length > 0) {
-      await db
-        .update(adSetInsights)
-        .set(data)
-        .where(eq(adSetInsights.id, insight.id));
-    } else {
-      await db.insert(adSetInsights).values({ id: insight.id, ...data });
-    }
+      return {
+        adSetId: internalAdSetId,
+        ...insight,
+      };
+    })
+    .filter(Boolean);
+
+  if (!parsed.length) {
+    console.log("❌ Nenhum insight de ad set válido para inserir.");
+    return;
+  }
+
+  try {
+    await batchInsert(adSetInsights, parsed);
+    console.log("✅ Inserção de insights de ad sets concluída.");
+  } catch (err) {
+    console.error("💥 Erro na inserção de insights de ad sets:", err);
   }
 }

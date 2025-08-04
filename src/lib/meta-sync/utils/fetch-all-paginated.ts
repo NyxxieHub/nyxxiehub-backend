@@ -13,6 +13,7 @@ export async function fetchAllPaginated<T>(
   let nextUrl: string | null = url;
 
   while (nextUrl) {
+    console.log(`[Meta API] Buscando: ${nextUrl}`);
     const res: Response = await fetch(nextUrl, {
       headers: {
         Authorization: `Bearer ${accessToken}`,

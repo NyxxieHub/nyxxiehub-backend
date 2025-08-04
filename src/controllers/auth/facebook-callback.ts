@@ -64,6 +64,7 @@ export async function facebookCallback(req: Request, res: Response) {
 
     const longLivedToken = longTokenRes.data.access_token;
     const expiresIn = longTokenRes.data.expires_in;
+    console.log("Token de longo prazo:", longLivedToken);
 
     // 3. Pega o ID do usuário do Facebook
     const meRes = await axios.get("https://graph.facebook.com/v19.0/me", {
@@ -73,6 +74,12 @@ export async function facebookCallback(req: Request, res: Response) {
     });
 
     const fbUserId = meRes.data.id;
+
+    console.log("Salvando no banco:", {
+      clientId,
+      token: longLivedToken,
+      expiresIn,
+    });
 
     // 4. Salva no banco
     await saveFacebookToken({

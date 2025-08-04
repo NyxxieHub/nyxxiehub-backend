@@ -23,7 +23,7 @@ export async function fetchAdSets(clientId: string, adAccountId: string) {
     "campaign_id",
   ].join(",");
 
-  const url = `https://graph.facebook.com/v19.0/act_${adAccountId}/adsets?fields=${fields}&limit=25`;
+  const url = `https://graph.facebook.com/v19.0/act_${adAccountId}/adsets?fields=${fields}&limit=25&access_token=${tokenRecord.access_token}`;
 
   const adSets = await fetchAllPaginated<MetaAdSet>(
     url,
